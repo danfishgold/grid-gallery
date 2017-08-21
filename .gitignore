@@ -2,3 +2,5 @@ example-photos
 src/node_modules
 src/.env
 src/.vscode
+src/elm-stuff
+src/elm.js
