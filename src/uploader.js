@@ -94,7 +94,7 @@ mongo.MongoClient
 
 
 function makePhotoStuff(filepath) {
-    const image = sharp(filepath)
+    const image = sharp(filepath).rotate()
     const original = image.jpeg().toBuffer()
     const metadata = image.metadata()
     const smaller = metadata
@@ -109,8 +109,8 @@ function makePhotoStuff(filepath) {
             return {
                 big: stuff[0],
                 small: stuff[1],
-                width: stuff[2].width,
-                height: stuff[2].height
+                width: stuff[2].orientation > 4 ? stuff[2].height : stuff[2].width,
+                height: stuff[2].orientation > 4 ? stuff[2].width : stuff[2].height
             }
         })
 }
