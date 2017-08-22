@@ -1,6 +1,6 @@
 module Main exposing (..)
 
-import Html exposing (Html, program, div)
+import Html exposing (Html, program, ul)
 import Photo exposing (Photo)
 import Http
 
@@ -37,7 +37,7 @@ view : Model -> Html Msg
 view model =
     model.photos
         |> List.map Photo.view
-        |> div []
+        |> ul []
 
 
 main : Program Never Model Msg

@@ -2,7 +2,7 @@ module Photo exposing (Photo, getAll, view)
 
 import Json.Decode as Decode exposing (Decoder, string, int)
 import Http
-import Html exposing (Html, img)
+import Html exposing (Html, li, img)
 import Html.Attributes exposing (classList, style, src)
 
 
@@ -60,13 +60,13 @@ view photo =
                 Square ->
                     "square"
     in
-        img
-            [ classList [ ( aspectRatioClass, True ), ( "fav", photo.isFav ) ]
-            , src photo.smallUrl
-            , style
-                [ ( "background", "salmon" )
-                , ( "max-width", "100%" )
-                , ( "max-height", "100%" )
+        li [ classList [ ( aspectRatioClass, True ), ( "fav", photo.isFav ) ] ]
+            [ img
+                [ src photo.smallUrl
+                , style
+                    [ ( "max-width", "100%" )
+                    , ( "max-height", "100%" )
+                    ]
                 ]
+                []
             ]
-            []
