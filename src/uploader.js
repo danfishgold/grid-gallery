@@ -94,8 +94,8 @@ mongo.MongoClient
 
 
 function makePhotoStuff(filepath) {
+    const original = fs.createReadStream(filepath)
     const image = sharp(filepath).rotate()
-    const original = image.jpeg().toBuffer()
     const metadata = image.metadata()
     const smaller = metadata
         .then(props => {
