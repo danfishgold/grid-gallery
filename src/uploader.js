@@ -4,6 +4,7 @@ const S3 = require('aws-sdk/clients/s3')
 const fs = require('fs')
 const path = require('path')
 const huey = require('huey')
+const sharp = require('sharp')
 const mongo = require('mongodb')
 
 const s3 = new AWS.S3({
@@ -11,52 +12,50 @@ const s3 = new AWS.S3({
     accessKeyId: process.env.S3_ACCESS_KEY_ID,
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
 })
-const bucket = process.env.S3_BUCKET
 
-const dir = 'photos'
-const localDir = '../example-photos'
+const s3Params = {
+    Bucket: process.env.S3_BUCKET,
+    ACL: 'public-read'
+}
+
+
+const s3Dir = 'photos'
+const localDir = './example-photos'
 const mongoUrl = 'mongodb://localhost:27017/photos-project'
 const mongoCollection = 'photos'
 
-mongo.MongoClient.connect(mongoUrl, (err, db) => {
-    if (err) { throw err }
-    const collection = db.collection(mongoCollection)
 
-    fs.readdir(localDir, (err, files) => {
-        for (let filename of files) {
-            
-            const filepath = path.join(localDir, filename)
-    
-            huey(filepath, (error, rgb, photoData) => {
-                if (err) { throw err }
-                const id = new mongo.ObjectId()
-                const { width, height } = photoData
-                
-                const stream = fs.createReadStream(filepath)
-                const fileParams = {
-                    Bucket: bucket,
-                    Key: path.join(dir, id.toHexString()),
-                    Body: stream,
-                    ACL: 'public-read'
-                }
-                s3.upload(fileParams, (err, data) => {
-                    if (err) { throw err }
-                    const doc = {
-                        _id: id,
-                        dominantColor: rgbToHex(rgb),
-                        width,
-                        height,
-                        url: data.Location
-                    }
-                    collection.insertOne(doc, (err, res) => {
-                        if (err) { throw err }
-                        console.log(`added ${filename}`)
-                    })
-                })
-            })
-        }
+// PROMISE STUFF
+
+Promise.prototype.thenMap = function(fn) {
+    return this.then(arr => Promise.all(arr.map(fn)))
+}
+Promise.prototype.thenLog = function(log) {
+    return this.then(x => {
+        console.log(log)
+        return x
     })
-})
+}
+
+function readDir(path) {
+    return new Promise((resolve, reject) => {
+        fs.readdir(path, (err, data) => {
+            if (err) { reject(err) }
+            else { resolve(data) }
+        })
+    })
+}
+
+function uploadFileToS3(params) {
+    return new Promise((resolve, reject) => {
+        s3.upload(params, (err, data) => {
+            if (err) { reject(err) }
+            else { resolve(data) }
+        })
+    })
+}
+
+// COLOR STUFF
 
 function componentToHex(c) {
     var hex = c.toString(16)
@@ -66,4 +65,86 @@ function componentToHex(c) {
 function rgbToHex(rgb) {
     const [r, g, b] = rgb
     return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b)
+}
+
+
+// ACTUAL STUFF
+
+mongo.MongoClient
+    .connect(mongoUrl)
+    .then(db => db.collection(mongoCollection))
+    .then(collection => {
+        return collection.deleteMany({})
+            .then(() => collection)
+    })
+    .then(collection => {
+        return readDir(localDir)
+            .then(fileNames =>
+                Promise.all(fileNames.map(fileName => {
+                    const filePath = path.join(localDir, fileName)
+                    return makePhotoStuff(filePath)
+                        .then(stuff => upload(stuff, s3, collection))
+                }))
+            )
+    })
+    .thenLog("Finished!")
+    .catch(err => {
+        console.log(`error: ${err.stack}`)
+    })
+
+
+function makePhotoStuff(filepath) {
+    const image = sharp(filepath)
+    const original = image.jpeg().toBuffer()
+    const metadata = image.metadata()
+    const smaller = metadata
+        .then(props => {
+            if (props.width > props.height) { return image.resize(400, null) }
+            else { return image.resize(null, 400) }
+        })
+        .then(img => img.jpeg().toBuffer())
+
+    return Promise.all([original, smaller, metadata])
+        .then(stuff => {
+            return {
+                big: stuff[0],
+                small: stuff[1],
+                width: stuff[2].width,
+                height: stuff[2].height
+            }
+        })
+}
+
+
+function upload(photoStuff, s3, collection) {
+    const { big, small, width, height } = photoStuff
+    const id = new mongo.ObjectID()
+
+    const bigParams = Object.assign({}, s3Params, {
+        Key: `${s3Dir}/${id}.jpg`,
+        Body: big
+    })
+    const smallParams = Object.assign({}, s3Params, {
+        Key: `${s3Dir}/${id}_small.jpg`,
+        Body: small
+    })
+
+    const uploads = Promise.all([
+        uploadFileToS3(bigParams).thenLog(`uploaded big ${id}`),
+        uploadFileToS3(smallParams).thenLog(`uploaded small ${id}`)
+    ])
+
+    const insertion = uploads.then(uploads => {
+        const [bigUpload, smallUpload] = uploads
+        const doc = {
+            _id: id,
+            width,
+            height,
+            smallUrl: smallUpload.Location,
+            bigUrl: bigUpload.Location
+        }
+        return collection.insertOne(doc).thenLog(`inserted ${id}`)
+    })
+
+    return insertion
 }
