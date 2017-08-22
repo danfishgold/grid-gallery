@@ -11,6 +11,9 @@ const s3 = new AWS.S3({
     apiVersion: process.env.S3_API_VERSION,
     accessKeyId: process.env.S3_ACCESS_KEY_ID,
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+    httpOptions: {
+        timeout: 1200000
+    }
 })
 
 const s3Params = {
