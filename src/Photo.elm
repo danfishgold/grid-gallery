@@ -13,10 +13,10 @@ type AspectRatio
 
 
 type alias Photo =
-    { dominantColor : String
-    , width : Int
+    { width : Int
     , height : Int
-    , url : String
+    , smallUrl : String
+    , bigUrl : String
     , isFav : Bool
     }
 
@@ -29,10 +29,10 @@ getAll =
 decoder : Decoder Photo
 decoder =
     Decode.map5 Photo
-        (Decode.field "dominantColor" string)
         (Decode.field "width" int)
         (Decode.field "height" int)
-        (Decode.field "url" string)
+        (Decode.field "smallUrl" string)
+        (Decode.field "bigUrl" string)
         (Decode.succeed False)
 
 
@@ -62,9 +62,9 @@ view photo =
     in
         img
             [ classList [ ( aspectRatioClass, True ), ( "fav", photo.isFav ) ]
-            , src photo.url
+            , src photo.smallUrl
             , style
-                [ ( "background", photo.dominantColor )
+                [ ( "background", "salmon" )
                 , ( "max-width", "100%" )
                 , ( "max-height", "100%" )
                 ]
