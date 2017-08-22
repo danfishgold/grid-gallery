@@ -1,11 +1,8 @@
 {
-  "name": "uploader",
+  "name": "Photo Viewer",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "description": "A barebones photo viewing web app.",
+  "main": "server.js",
   "author": "",
   "license": "ISC",
   "dependencies": {
