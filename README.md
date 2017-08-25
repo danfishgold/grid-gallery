@@ -1,4 +1,4 @@
-# Photo Viewer
+# Grid Gallery
 
 I listened to the [Presentable episode][presentable] with [Jen Simmons][jen],
 and then I saw Jen's [very good talk][talk] about CSS grid and ideas for layout
@@ -46,7 +46,7 @@ After `uploader.js` has finished, you should run
 
 to build the client page and start the server.
 
-Finally, open `index.html` in your browser of choice (which supports css grid).
+Finally, open `index.html` in your browser of choice (which supports CSS grid).
 
 [presentable]: https://www.relay.fm/presentable/28
 [jen]: http://jensimmons.com
